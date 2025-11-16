@@ -63,7 +63,7 @@ Start -> Code (Datos Crudos) -> Code (Procesador) -> Qdrant Vector Store
 - Code (Procesador): Detecta estructuras, aplica chunking (Guía, Opinión, Datos) y formatea la salida a `{ pageContent: "...", metadata: {...} }`.
 - Qdrant Vector Store: Insert Documents usando Embeddings Google Gemini.
 
-![Flujo 1 - Ingesta](images/flujo_ingesta.svg)
+![Flujo 1 - Ingesta](images/flujo1.png)
 
 ### Flujo 2: RAG en Vivo (La API)
 
@@ -76,7 +76,7 @@ Webhook -> Code (Validador) -> IF (Válido?) -> (rama true) -> Code (PreparadorQ
 - Google Gemini: Genera respuesta usando prompt dinámico.
 - Code (Validador Calidad): Verifica relevancia y formato.
 
-![Flujo 2 - RAG en Vivo](images/flujo_rag_vivo.svg)
+![Flujo 2 - RAG en Vivo](images/flujo2.png)
 
 ---
 
