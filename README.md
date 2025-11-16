@@ -76,7 +76,7 @@ Webhook -> Code (Validador) -> IF (Válido?) -> (rama true) -> Code (PreparadorQ
 - Google Gemini: Genera respuesta usando prompt dinámico.
 - Code (Validador Calidad): Verifica relevancia y formato.
 
-![Flujo 2 - RAG en Vivo](images/flujo2.png)
+![Flujo 2 - RAG en Vivo](images/Flujo2.png)
 
 ---
 
