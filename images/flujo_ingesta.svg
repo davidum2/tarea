@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="260" viewBox="0 0 900 260">
+  <style>
+    .box { fill:#EFF6FF; stroke:#60A5FA; stroke-width:2; rx:10; }
+    .text { font-family: Inter, Arial, sans-serif; font-size:14px; fill:#0f172a; }
+    .arrow { stroke:#60A5FA; stroke-width:2; fill:none; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#60A5FA" />
+    </marker>
+  </defs>
+
+  <!-- Boxes -->
+  <rect x="20" y="30" width="200" height="60" class="box" />
+  <text x="120" y="60" text-anchor="middle" class="text">Start</text>
+
+  <rect x="250" y="20" width="220" height="80" class="box" />
+  <text x="360" y="50" text-anchor="middle" class="text">Code (Datos Crudos)</text>
+
+  <rect x="520" y="20" width="220" height="80" class="box" />
+  <text x="630" y="50" text-anchor="middle" class="text">Code (Procesador / Chunking)</text>
+
+  <rect x="250" y="140" width="220" height="80" class="box" />
+  <text x="360" y="170" text-anchor="middle" class="text">Qdrant Vector Store<br/>(Insert Documents)</text>
+
+  <!-- Arrows -->
+  <path d="M220 60 L250 60" class="arrow" />
+  <path d="M470 60 L520 60" class="arrow" />
+  <path d="M630 100 L630 140" class="arrow" />
+  <path d="M360 100 L360 140" class="arrow" />
+
+  <!-- Labels -->
+  <text x="120" y="90" text-anchor="middle" class="text" font-size="12">Pegar JSON</text>
+  <text x="630" y="190" text-anchor="middle" class="text" font-size="12">Vectors (Embeddings Gemini)</text>
+
+  <!-- Footer note -->
+  <text x="450" y="240" text-anchor="middle" class="text" font-size="12" fill="#475569">Flujo 1 — Ingesta: transform & chunk → insertar en Qdrant</text>
+</svg>
