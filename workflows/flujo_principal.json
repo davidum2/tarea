@@ -1,0 +1,321 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bfdc997a-a717-48d1-ac3e-3eda34d3bb38",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -736,
+        256
+      ],
+      "id": "6839bcbb-a2df-4d66-8019-2099d04af929",
+      "name": "Webhook",
+      "webhookId": "bfdc997a-a717-48d1-ac3e-3eda34d3bb38"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "Data-Travel-collection",
+          "mode": "list",
+          "cachedResultName": "Data-Travel-collection"
+        },
+        "prompt": "={{ $json.query_vector }}",
+        "topK": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        256
+      ],
+      "id": "97137db7-7a1d-41e5-b673-a4eff2df1226",
+      "name": "Qdrant Vector Store1",
+      "credentials": {
+        "qdrantApi": {
+          "id": "0X1jJOuoteU6yKkU",
+          "name": "Travel Qdrant"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        400
+      ],
+      "id": "ef986e5d-d7ca-42d0-90bb-5d8279681240",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "MJ59BvAixLXC3eJK",
+          "name": "travel"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// \n\n// 1. Recibir los 5 campos del Webhook\n// $json.body contiene el JSON de tu formulario\nconst body = $input.first().json.body\n\n// 2. Crear la \"Consulta Vectorial\"\n// Combinamos todos los campos en una sola frase\n// para que el embedding capture la intención completa.\nconst consultaVectorial = `\n  Itinerario de ${body.duracion} días para ${body.destino} \n  con un presupuesto ${body.presupuesto}.\n  Intereses principales: ${body.intereses.join(', ')}.\n  Restricciones o notas: ${body.restricciones || 'ninguna'}.\n`;\n\n// 3. Preparar los \"Filtros de Metadatos\"\n// Mapeamos los inputs del formulario a los campos\n// que SÍ indexamos en Qdrant.\n\n// Asumimos que el primer \"interés\" es la categoría principal.\n// Si no hay intereses, usamos 'General' como fallback.\nconst filtroCategoria = body.intereses[0] || \"General\";\n\n// Asumimos que el \"destino\" coincide con nuestra \"ubicacion_general\".\n// Esto es una suposición clave que podemos ajustar luego.\nconst filtroUbicacion = body.destino;\n\n\n// 4. Devolver un solo ítem con todo preparado\nreturn [{\n  json: {\n    // La consulta para la búsqueda vectorial\n    query_vector: consultaVectorial,\n    \n    // Los filtros para la búsqueda de metadatos\n    query_filtros: {\n      categoria_primaria: filtroCategoria,\n      ubicacion_general: filtroUbicacion\n    },\n    \n    // Pasamos la solicitud original para usarla en el prompt final\n    solicitud_original: body \n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        256
+      ],
+      "id": "9f42d51c-0c0d-4ac6-bd76-c9e53312f134",
+      "name": "PreparadorQuery"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Eres un experto planificador de viajes para el estado de Chihuahua, México. Tu tono es amigable y servicial.\n\nBasándote ESTRICTAMENTE en el \"Contexto Relevante\" que te proporciono, y en la \"Solicitud del Usuario\", genera un itinerario detallado en formato Markdown.\n\nNo inventes información que no esté en el contexto. Si el contexto no es suficiente, indícalo amablemente.\n\n--- Solicitud del Usuario ---\nDestino: {{ $json.solicitud_original.destino }}\nDuración: {{ $json.solicitud_original.duracion }} días\nPresupuesto: {{ $json.solicitud_original.presupuesto }}\nIntereses: {{ $json.solicitud_original.intereses.join(', ') }}\nRestricciones: {{ $json.solicitud_original.restricciones }}\n\n--- Contexto Relevante (De tu base de datos RAG) ---\n{{ $json.contexto_rag }}\n\n--- Tu Itinerario Generado ---"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        256
+      ],
+      "id": "afcf0bd5-16cd-4f43-a1a2-24400a74b7da",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "MJ59BvAixLXC3eJK",
+          "name": "travel"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=\n {{ $json.content.parts[0].text }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1136,
+        80
+      ],
+      "id": "3d1aafca-3706-42ff-bf72-931597b4d84d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \n\n// --- 1. OBTENER LA RESPUESTA DE GEMINI ---\n// Esta es la salida del nodo anterior (Paso 5)\nconst llmRespuesta = $input.first().json.content.parts[0].text\n\n// --- 2. OBTENER LA SOLICITUD ORIGINAL ---\n// La traemos del nodo \"FormateadorContexto\" (Paso 4)\n// Asegúrate de que tu Paso 4 se llame \"FormateadorContexto\"\nconst solicitudOriginal = $('FormateadorContexto').first().json.solicitud_original;\n\nlet erroresCalidad = [];\n\n// --- 3. INICIO DE VALIDACIONES ---\n\n// VALIDACIÓN 1: ¿Viene vacía o muy corta?\nif (!llmRespuesta || llmRespuesta.length < 50) {\n  erroresCalidad.push(\"La respuesta generada está vacía o es demasiado corta.\");\n}\n\n// VALIDACIÓN 2: ¿Contiene frases de rechazo (alucinaciones comunes)?\nconst frasesRechazo = [\"lo siento\", \"no puedo\", \"incapaz de\", \"i cannot\"];\nif (frasesRechazo.some(frase => llmRespuesta.toLowerCase().includes(frase))) {\n  erroresCalidad.push(\"La IA no pudo procesar la solicitud y generó una respuesta de rechazo.\");\n}\n\n// VALIDACIÓN 3: ¿Es relevante? ¿Menciona el destino?\n// (Esta es la validación MÁS importante)\ntry {\n  const destino = solicitudOriginal.destino.toLowerCase();\n  // Comprobamos si la respuesta (en minúsculas) incluye la primera palabra del destino\n  if (!llmRespuesta.toLowerCase().includes(destino.split(' ')[0].toLowerCase())) {\n    erroresCalidad.push(`La respuesta generada no parece ser relevante para el destino solicitado (${solicitudOriginal.destino}).`);\n  }\n} catch (e) {\n  // En caso de que solicitudOriginal no exista (error de flujo)\n  erroresCalidad.push(\"No se pudo verificar la relevancia de la respuesta.\");\n}\n\n\n// --- 4. DEVOLVER EL RESULTADO ---\nif (erroresCalidad.length > 0) {\n  // FALLÓ LA CALIDAD\n  return [{\n    json: {\n      isValid: false,\n      error_message: \"Hubo un problema de calidad con la respuesta generada: \" + erroresCalidad.join(', ')\n    }\n  }];\n} else {\n  // ÉXITO\n  return [{\n    json: {\n      isValid: true,\n      // Pasamos la respuesta buena al siguiente nodo\n      respuesta_validada: llmRespuesta \n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        256
+      ],
+      "id": "f34bc293-4abb-4493-a530-241a772eefa1",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \n\n// --- 1. OBTENER LOS 5 CHUNKS DE QDRANT ---\n// 'items' (sin $) es la variable moderna de n8n\n// que contiene TUS 5 ITEMS de entrada.\nconst chunks = items;\n\n// --- 2. OBTENER LA SOLICITUD ORIGINAL ---\n// (Esto sigue igual, la traemos del nodo \"PreparadorQuery\" (Paso 2))\n// Asegúrate de que tu Paso 2 (Code) se llame \"PreparadorQuery\"\nconst solicitudOriginal = $('PreparadorQuery').first().json.solicitud_original;\n\nlet contexto = \"--- Contexto Relevante de Guías y Reseñas ---\\n\\n\";\n\n// --- 3. ITERAR SOBRE LOS 5 CHUNKS ---\nfor (const chunk of chunks) {\n  \n  // Esta es la ruta correcta basada en tu JSON de salida:\n  // chunk (el item) -> json (el contenedor de datos) -> document (el objeto)\n  const doc = chunk.json.document;\n  const metadata = doc.metadata;\n  \n  // Construimos el bloque de contexto\n  contexto += `Fuente: ${metadata.nombre_atraccion}\\n`;\n  contexto += `Tipo de Dato: ${metadata.tipo_chunk}\\n`;\n  contexto += `Contenido: ${doc.pageContent}\\n\\n`;\n}\n\n// --- 4. DEVOLVER UN SOLO ITEM ---\n// Este nodo recibe 5 items pero devuelve 1 solo,\n// con todo el contexto y la solicitud listos para Gemini.\nreturn [{\n  json: {\n    contexto_rag: contexto,\n    solicitud_original: solicitudOriginal\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        256
+      ],
+      "id": "95b3babf-b302-498a-93b6-92f3e9d29f40",
+      "name": "FormateadorContexto",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9c5061d6-ae59-48a9-8501-c78f374305bf",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        256
+      ],
+      "id": "abbc450b-f659-4801-9901-2dc02068f217",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "const texto = `## ¡Error de Calidad! \\n\\nLa IA generó una respuesta, pero nuestro sistema de control detectó que no era relevante o estaba incompleta. \\n\\n**Error:** ${$json.error_message} \\n\\nPor favor, intenta modificar tu solicitud y vuelve a enviarla.`;\nconst textoEscapado = JSON.stringify(texto);\nconst jsonString = `{ \"itinerario\": ${textoEscapado} }`;\nreturn jsonString;",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1152,
+        400
+      ],
+      "id": "4600e962-537f-4f17-8588-81208929ddb7",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "PreparadorQuery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "FormateadorContexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PreparadorQuery": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormateadorContexto": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Message a model": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "¡Hola! Con gusto te ayudo a planificar tu viaje a las Barrancas del Cobre. Basándome en la información que tengo, te propongo el siguiente itinerario de 3 días con presupuesto medio:\n\n**Itinerario de 3 Días en Barrancas del Cobre**\n\n**Día 1: Llegada y Vistas Panorámicas**\n\n*   **Mañana:**\n    *   Viaja en el Tren Chepe Express. Recuerda que el viaje dura aproximadamente 9 horas, por lo que te sugiero salir lo más temprano posible. ¡Prepárate para disfrutar de paisajes únicos a través de los grandes ventanales! Considera usar calzado cómodo para el viaje.\n*   **Tarde:**\n    *   Llegada a Estación Divisadero.\n    *   Disfruta de las vistas panorámicas de las Barrancas del Cobre. Este es un punto clave para admirar la belleza natural de la región.\n*   **Noche:**\n    *   Alojamiento en un hotel en la zona (considera opciones de presupuesto medio).\n\n**Día 2: Aventura en el Parque**\n\n*   **Mañana:**\n    *   Dirígete al Parque Aventura Barrancas del Cobre (conecta directamente desde Estación Divisadero).\n    *   Disfruta de actividades emocionantes como el teleférico y/o la tirolesa.\n*   **Tarde:**\n    *   Sube al teleférico de Barrancas del Cobre. Las cabinas ofrecen vistas panorámicas impresionantes de la unión de las barrancas Cobre, Tararecua y Urique.\n*   **Noche:**\n    *   Alojamiento en la zona.\n\n**Día 3: Experiencia Tarahumara y Regreso**\n\n*   **Mañana:**\n    *   Participa en la Experiencia Tarahumara (consulta con tu operador turístico para detalles y disponibilidad). La experiencia dura aproximadamente dos horas.\n*   **Tarde:**\n    *   Dependiendo de tus horarios, puedes disfrutar de actividades adicionales en la zona o prepararte para tu regreso.\n*   **Noche:**\n    *   Fin del viaje.\n\n**Consideraciones:**\n\n*   **Temporada:** Se recomienda viajar después de la temporada de lluvias (Agosto y Septiembre) para disfrutar de mejores vistas.\n*   **Clases en el Chepe:** El tren ofrece diferentes clases (Primera Clase, Clase Ejecutiva, Clase Turista). Elige la que mejor se adapte a tu presupuesto.\n\n¡Espero que disfrutes mucho tu viaje!\n"
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP",
+        "avgLogprobs": -0.2545734469213822
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c48c4ed263e9b8664ac38c3593faf19e110787aa15259c88476a14a1d906ce56"
+  }
+}
